@@ -104,64 +104,40 @@ class WebhookHandler(BaseHTTPRequestHandler):
             print(f"   ℹ️  Событие '{event_type}' - базовое логирование")
 
     def _handle_push_event(self, payload):
-        """Обработка push события"""
-        commits = payload.get('commits', [])
+        
         branch = payload.get('ref', '').replace('refs/heads/', '')
+        repo_url = payload.get('repository', {}).get('clone_url', '')
         pusher = payload.get('pusher', {}).get('name', 'unknown')
-        clone_url = payload.get('repository', {}).get('clone_url', 'unknown')
 
-        print(f"   📝 Push в ветку: {branch}")
-        print(f"   👤 Автор: {pusher}")
-        print(f"   📊 Коммитов: {len(commits)}")
+        print(f"\n📦 Получен push от {pusher} в ветку {branch}")
 
-        # Имитируем автоматические действия
-        print(f"   🚀 ЗАПУСКАЕМ АВТОМАТИЗАЦИЮ:")
-        print(f"      - Запуск тестов для ветки {branch}")
-        print(f"      - Проверка качества кода")
+        repo_dir = "/home/ulyana/devops/catty-app"  # путь к твоему проекту
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            print(f"Временная директория: {tmpdir}")
+        # 1️⃣ Если папка уже существует — обновляем, иначе клонируем
+        if os.path.exists(repo_dir):
+            print("🔄 Обновляем существующий репозиторий...")
+            subprocess.run(["git", "-C", repo_dir, "pull"], check=False)
+        else:
+            print("📥 Клонируем репозиторий заново...")
+            subprocess.run(["git", "clone", repo_url, repo_dir], check=True)
 
-            # Выполняем git clone
-            subprocess.run(
-                ["git", "clone", clone_url, tmpdir],
-                check=True
-            )
+        # 2️⃣ (опционально) Установка зависимостей
+        print("📦 Проверяем зависимости...")
+        subprocess.run(["pip", "install", "-r", "requirements.txt"], cwd=repo_dir, check=False)
 
-            subprocess.run(
-                ["git", "checkout", branch],
-                cwd=tmpdir,
-                check=True
-            )
+        # 3️⃣ Запуск тестов (если есть)
+        test_script = os.path.join(repo_dir, "test.sh")
+        if os.path.exists(test_script):
+            print("🧪 Запускаем тесты...")
+            subprocess.run(["bash", "test.sh"], cwd=repo_dir, check=False)
+        else:
+            print("⚠️ Тестов не найдено — пропускаем.")
 
-            # Запускаем тесты перед деплоем
-            print(f"      - Запуск тестов...")
-            try:
-                result = subprocess.run(
-                    ["./test.sh"],
-                    cwd=tmpdir,
-                    check=True,
-                    capture_output=True,
-                    text=True
-                )
-                print(f"      ✅ Тесты прошли успешно!")
-                print(f"         {result.stdout.strip()}")
+        # 4️⃣ Перезапуск приложения (через systemd или вручную)
+        print("🔁 Перезапускаем приложение Catty...")
+        subprocess.run(["systemctl", "--user", "restart", "catty.service"], check=False)
 
-                # Только если тесты прошли - запускаем деплой
-                print(f"      - Запуск деплоя...")
-                subprocess.run(
-                    ["./deploy.sh"],
-                    cwd=tmpdir,
-                    check=True
-                )
-                print(f"      ✅ Деплой завершен успешно!")
-
-            except subprocess.CalledProcessError as e:
-                print(f"      ❌ Тесты упали! Деплой ОТМЕНЕН")
-                print(f"         {e.stdout if e.stdout else 'Нет вывода'}")
-                if e.stderr:
-                    print(f"         Ошибка: {e.stderr}")
-                return
+        print("✅ Автоматическое развертывание завершено!\n")
 
 
     def _handle_pr_event(self, payload):
