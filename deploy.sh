@@ -1,36 +1,35 @@
 #!/bin/bash
+set -e
 
-echo "🚀 Начинаем развертывание демо-сайта..."
+echo "🚀 Начинаем развертывание Catty-App..."
 
-# Проверяем, установлен ли nginx
-if ! command -v nginx &> /dev/null; then
-    echo "❌ nginx не установлен."
-    exit 1
-fi
+APP_DIR=/home/ulyana/devops/catty-app
+REPO_URL=https://github.com/ubeL13/catty-app.git
+BRANCH=first  
 
-# Создаем директорию для сайта
-sudo mkdir -p /var/www/demo
-
-# Копируем файлы
-echo "📁 Копируем файлы сайта..."
-sudo cp index.html /var/www/demo/
-
-# Копируем конфигурацию nginx
-echo "⚙️  Применяем конфигурацию nginx..."
-sudo cp nginx.conf /etc/nginx/sites-available/demo-site
-sudo ln -sf /etc/nginx/sites-available/demo-site /etc/nginx/sites-enabled/
-
-# Проверяем конфигурацию
-echo "🔍 Проверяем конфигурацию nginx..."
-sudo nginx -t
-
-if [ $? -eq 0 ]; then
-    # Перезапускаем nginx
-    echo "🔄 Перезапускаем nginx..."
-    sudo systemctl reload nginx
-    
-    echo "✅ Развертывание завершено успешно!"
+# Заходим в директорию приложения
+if [ -d "$APP_DIR" ]; then
+    echo "📁 Папка приложения найдена, обновляю код..."
+    cd $APP_DIR
+    git fetch origin
+    git reset --hard origin/$BRANCH
 else
-    echo "❌ Ошибка в конфигурации nginx"
-    exit 1
+    echo "🆕 Клонирую репозиторий заново..."
+    git clone -b $BRANCH $REPO_URL $APP_DIR
+    cd $APP_DIR
 fi
+
+# Активируем виртуальное окружение
+if [ ! -d "venv" ]; then
+    echo "🐍 Создаю виртуальное окружение..."
+    python3 -m venv venv
+fi
+
+source venv/bin/activate
+pip install -r requirements.txt
+
+echo "🔄 Перезапускаю Catty-App..."
+sudo systemctl restart catty.service || echo "⚠️ catty.service не найден — возможно, запусти вручную!"
+
+echo "✅ Развертывание Catty-App завершено!"
+
