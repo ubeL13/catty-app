@@ -1,0 +1,48 @@
+name: CD - Deploy application to server
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Клонируем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Добавляем приватный SSH ключ
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # 3️⃣ Копируем файлы на сервер
+      - name: Copy project files to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: course.prafdin.ru
+          username: ulyana
+          port: 2458
+          source: "."
+          target: "/home/ulyana/devops/app"
+
+      # 4️⃣ Подключаемся по SSH и перезапускаем приложение
+      - name: Deploy and restart app
+        uses: appleboy/ssh-action@v1
+        with:
+          host: course.prafdin.ru
+          username: ulyana
+          port: 2458
+          script: |
+            cd /home/ulyana/devops/app
+            echo "📦 Получен новый релиз"
+            git pull || true
+            echo "🔧 Собираем приложение..."
+            chmod +x test.sh
+            ./test.sh || exit 1
+            echo "🔁 Перезапуск сервиса catty..."
+            sudo systemctl restart catty.service
+            echo "✅ Развертывание завершено успешно!"
