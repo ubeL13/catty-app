@@ -23,7 +23,7 @@ jobs:
           host: course.prafdin.ru
           username: ulyana
           port: 2458
-          **key: ${{ secrets.SSH_PRIVATE_KEY }}**
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "."
           target: "/home/ulyana/devops/app"
 
