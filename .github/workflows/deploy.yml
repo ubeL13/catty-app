@@ -14,16 +14,21 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Test SSH connection
+        run: |
+          ssh -o StrictHostKeyChecking=no -p 2458 ulyana@course.prafdin.ru "echo 'SSH connection successful'"
+
       - name: Deploy container
         uses: appleboy/ssh-action@v1
         with:
           host: course.prafdin.ru
           username: ulyana
           port: 2458
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "🔁 Pull new Docker image..."
             docker stop catty-container || true
             docker rm catty-container || true
-            docker pull ghcr.io/${{ github.repository_owner }}/catty-app:latest
-            docker run -d -p 8181:80 --name catty-container ghcr.io/${{ github.repository_owner }}/catty-app:latest
+            docker pull ghcr.io/ubel13/catty-app:latest
+            docker run -d -p 8181:8181 --name catty-container ghcr.io/ubel13/catty-app:latest
             echo "✅ Deployed new version!"
