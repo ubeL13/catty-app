@@ -32,7 +32,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/ubeL13/catty-app:latest
-            ghcr.io/ubeL13/catty-app:${{ github.sha }}
+            ghcr.io/ubel13/catty-app:latest
+            ghcr.io/ubel13/catty-app:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
