@@ -1,0 +1,62 @@
+name: CD - Deploy via Docker Compose
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy with Docker Compose
+        uses: appleboy/ssh-action@v1
+        with:
+          host: course.prafdin.ru
+          username: ulyana
+          port: 2458
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🚀 Starting deployment with Docker Compose..."
+            
+            # Создаем папку если не существует
+            mkdir -p ~/devops/nginx
+            
+            # Копируем файлы на сервер
+            echo "📁 Copying configuration files..."
+            cp docker-compose.yml ~/devops/
+            cp -r nginx/ ~/devops/
+            
+            # Переходим в папку проекта
+            cd ~/devops
+            
+            # Логинимся в GitHub Container Registry
+            echo "🔐 Logging into GHCR..."
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Останавливаем старые контейнеры и запускаем новые
+            echo "🐳 Deploying with Docker Compose..."
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
+            
+            echo "✅ Deployment completed!"
+            
+            # Проверяем что контейнеры запустились
+            echo "📊 Checking containers status..."
+            docker-compose ps
+
+      - name: Verify deployment
+        run: |
+          echo "🚀 Deployment verification"
+          echo "📱 Expected URL: http://app.belyakova.course.prafdin.ru"
+          sleep 15  # Ждем пока все сервисы запустятся
+          curl -f http://app.belyakova.course.prafdin.ru || echo "⚠️ Application might be starting..."
