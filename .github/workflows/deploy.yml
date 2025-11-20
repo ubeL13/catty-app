@@ -24,6 +24,7 @@ jobs:
           username: ulyana
           port: 2458
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+
           script: |
             echo "🚀 Starting deployment with Docker Compose..."
             
@@ -41,6 +42,15 @@ jobs:
             # Логинимся в GitHub Container Registry
             echo "🔐 Logging into GHCR..."
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # ⭐ ДОБАВЛЯЕМ ОЧИСТКУ ПОРТОВ (из вашего старого deploy.yml)
+            echo "🛑 Stopping ANY container on port 8181..."
+            docker stop $(docker ps -q --filter "publish=8181") 2>/dev/null || true
+            docker rm $(docker ps -aq --filter "publish=8181") 2>/dev/null || true
+            
+            echo "🛑 Stopping ANY container on port 80..."
+            docker stop $(docker ps -q --filter "publish=80") 2>/dev/null || true  
+            docker rm $(docker ps -aq --filter "publish=80") 2>/dev/null || true
             
             # Останавливаем старые контейнеры и запускаем новые
             echo "🐳 Deploying with Docker Compose..."
