@@ -19,6 +19,8 @@ services:
       MYSQL_USER: catty
       MYSQL_PASSWORD: cattypass
     command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306" 
     volumes:
       - db-data:/var/lib/mysql
     restart: unless-stopped
