@@ -1,15 +1,12 @@
 name: catty-reminders
-
 services:
   database:
-    image: mysql:8.0
+    image: mysql:5.7.36
     container_name: catty-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: mypass
       MYSQL_DATABASE: catty_reminders
-      MYSQL_USER: root
-      MYSQL_PASSWORD: mypass
     command: --default-authentication-plugin=mysql_native_password
     volumes:
       - mysql_data:/var/lib/mysql
@@ -18,16 +15,11 @@ services:
 
   backend:
     image: ghcr.io/ubel13/catty-app:latest
+    # build: ./
     container_name: catty-backend
     restart: unless-stopped
     ports:
       - "8181:8181"
-    environment:
-      DB_HOST: "database"        # ← имя сервиса БД
-      DB_PORT: "3306"            # ← порт MySQL
-      DB_USER: "root"            # ← пользователь
-      DB_PASSWORD: "mypass"      # ← пароль
-      DB_NAME: "catty_reminders" # ← имя базы
     depends_on:
       - database
     networks:
@@ -52,6 +44,3 @@ networks:
 
 volumes:
   mysql_data:
-    driver: local
-  app-data:
-    driver: local
